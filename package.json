@@ -1,7 +1,6 @@
 {
   "name": "content-team-scraper",
   "version": "1.0.0",
-  "type": "module",
   "main": "app.js",
   "license": "MIT",
   "dependencies": {

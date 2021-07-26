@@ -1,46 +1,27 @@
-import puppeteer from "puppeteer"
-
-/**
- * Initiates a puppeteer browser instance
- *
- * Any additional mutations to the browser need to be passed in here
- * This function should be the only one responsible in the entire app
- * for initiating a browser instance, and this should be the only browser
- * intance used by the entire app.
- *
- * @class
- */
-const Browser = class {
-  /**
-   * @public
-   * @param { boolean } HEADLESS
-   */
-  constructor(HEADLESS = false) {
-    this.headless = HEADLESS
-  }
-
-  /**
-   * Initiates a puppeteer browser
-   * @public
-   * @return { Promise } Browser Instance
-   */
-  init = async () => {
+module.exports = {
+  _puppeteer: require("puppeteer"),
+  _pageEvents: require("./page/PageEvents.js"),
+  _initBrowser: async function () {
     return new Promise(async (resolve) => {
-      const _browser = await puppeteer.launch({ headless: this.HEADLESS })
-      return resolve(_browser)
-    })
-  }
+      const _browser = await this._puppeteer.launch({ headless: false });
+      return resolve(_browser);
+    });
+  },
+  _initPage: async function (BROWSER) {
+    return new Promise(async (resolve) => {
+      const _page = await BROWSER.newPage();
+      return resolve(_page);
+    });
+  },
 
-  /**
-   * Closes the browser instance, always returns true
-   * @public
-   * @param { Promise } BROWSER
-   * @return { true }
-   */
-  close = async (BROWSER) => {
-    BROWSER.close()
-    return true
-  }
-}
-
-export default Browser
+  run: async function () {
+    const browser = await this._initBrowser();
+    const page = await this._initPage(browser);
+    await page.setViewport({
+      width: 0,
+      height: 0,
+    });
+    await page.goto("https://syed-mh.netlify.app/");
+    const data = await page.evaluate(this._pageEvents.CreateFAB);
+  },
+};

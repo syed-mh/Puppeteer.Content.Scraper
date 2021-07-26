@@ -9,6 +9,7 @@
  *
  * @class
  */
+import PageEvents from "./page/PageEvents.js";
 
 const Page = class {
   /**
@@ -16,21 +17,31 @@ const Page = class {
    * @param { Promise } BROWSER
    */
   constructor(BROWSER) {
-    this.browser = BROWSER
+    this.browser = BROWSER;
   }
 
   init = async () => {
     return new Promise(async (resolve) => {
-      const _page = await this.browser.newPage()
-      return resolve(_page)
-    })
-  }
+      const _page = await this.browser.newPage();
+      this.page = resolve(_page);
+      return this.page;
+    });
+  };
 
-  evaluate = async () => {}
+  navigateTo = async (URL) => {
+    await this.page.goto(URL);
+  };
 
-  close = async (PAGE) => {
-    PAGE.close()
-    return true
-  }
-}
-export default Page
+  runEvents = async () => {
+    await this.page.evaluate(() => {
+      PageEvents.CreateFAB();
+      alert("hello world");
+    });
+  };
+
+  destroy = async () => {
+    this.page.close();
+    return true;
+  };
+};
+export default Page;
