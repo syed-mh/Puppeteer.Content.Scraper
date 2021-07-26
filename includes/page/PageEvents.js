@@ -11,7 +11,7 @@ module.exports = {
    * @return { void }
    */
   GlobalPreventDefault: (EVENT) => {
-    e.preventDefault();
+    EVENT.preventDefault();
   },
 
   /**
@@ -53,6 +53,80 @@ module.exports = {
       EVENT.target.style.backgroundColor = "";
       EVENT.target.style.transition = "";
     }
+  },
+
+  /**
+   * Get a node on click and make it available as a reference.
+   * @param { Event } EVENT
+   * @return { Node }
+   */
+  GetNode: (EVENT) => {
+    window.ScrapingNode = EVENT.target;
+    return window.ScrapingNode;
+  },
+
+  /**
+   * Gets a node's relative address from the document's body element. Used to identify
+   * other relevant nodes in the document.
+   *
+   * @param { Node } NODE
+   * @return { string }
+   */
+  GetNodeAddress: (NODE) => {
+    let node = NODE;
+    const address = [];
+    while (node.nodeName.toLowerCase() !== "body") {
+      const _address = [];
+      _address.push(node.nodeName);
+      node.className &&
+        node.classList.length < 2 &&
+        _address.push(`.${node.className.replace(/ /g, ".")}`);
+      node.id && _address.push(`#${node.id}`);
+      address.unshift(_address.join(""));
+      node = node.parentNode;
+    }
+    window.ScrapingNodeAddress = address.join(" ");
+    return window.ScrapingNodeAddress;
+  },
+
+  /**
+   * Fetches all relevant scraping nodes from the document
+   *
+   * @param { String } ADDRESS
+   * @return { Node[] }
+   */
+  GetRelevantNodes: (ADDRESS = window.ScrapingNodeAddress) => {
+    window.ScrapingNodes = document.querySelectorAll(ADDRESS);
+  },
+
+  /**
+   * Empties out the document and appends the content found by the scraper
+   * instead.
+   *
+   * @param { Node[] } NODES
+   * @return { void }
+   */
+  DeleteAllOtherNodes: (NODES = window.ScrapingNodes) => {
+    document.body.innerHTML = "";
+    [...NODES].forEach((node) => {
+      document.body.appendChild(node);
+    });
+  },
+
+  /**
+   * Parses the innertext of each scrapable node from the document to
+   * a JSON object
+   *
+   * @param { Node[] } NODES
+   */
+  ParseNodeContents: (NODES) => {
+    const content = {
+      title: document.title,
+      content: {},
+    };
+    [...NODES].forEach((node, index) => {
+      const nodeContent = [];
+    });
   },
 
   /**
