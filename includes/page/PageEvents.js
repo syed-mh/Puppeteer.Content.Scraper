@@ -1,4 +1,19 @@
-module.exports = {
+const V8_EVENTS = {
+  /**
+   * String constants that define the role of a node selected
+   * by a user. This object gets appended to the Window object
+   * to be referenced by other functions
+   *
+   * @return { void }
+   */
+  NodeRoles: function () {
+    const roles = {
+      POST_TITLE: "Post Title",
+      CONTENT_CONTAINER: "Content Container",
+    };
+    window.NodeRoles = { ...roles };
+  },
+
   /**
    * Function to prevent click actions anywhere on the page. This
    * is done in an effort to allow users to click to select DOM
@@ -21,7 +36,15 @@ module.exports = {
    * @param { Event } EVENT
    * @return { void }
    */
-  FABConfirmClick: (EVENT) => {},
+  FABConfirmClick: (EVENT) => {
+    if (EVENT.target.getAttribute("v8-role") === "complete") {
+      window.removeEventListener("mousemove", V8_EVENTS.HighlightMouseTarget);
+      window.removeEventListener("mouseout", V8_EVENTS.DeHighlightMouseTarget);
+      window.removeEventListener("click", V8_EVENTS.GetNode);
+      V8_EVENTS.CacheRelevantNodes();
+      V8_EVENTS.DeleteAllOtherNodes();
+    }
+  },
 
   /**
    * Function to highlight DOM Nodes when hovered on. This allows
@@ -35,7 +58,7 @@ module.exports = {
    * @return { void }
    */
   HighlightMouseTarget: (EVENT) => {
-    if (EVENT.target.id !== "v8-start") {
+    if (!EVENT.target.getAttribute("v8-role")) {
       EVENT.target.style.backgroundColor = "lightpink";
       EVENT.target.style.transition = "background-color 100ms linear";
     }
@@ -49,20 +72,67 @@ module.exports = {
    * @return { void }
    */
   DeHighlightMouseTarget: (EVENT) => {
-    if (EVENT.target.id !== "v8-start") {
+    if (!EVENT.target.getAttribute("v8-role")) {
       EVENT.target.style.backgroundColor = "";
       EVENT.target.style.transition = "";
     }
   },
 
   /**
+   * Function to create a little dropdown that asks users what the role of a
+   * selected node is
+   *
+   * @param { Node } NODE
+   * @return { string } Role
+   */
+  GetNodeRole: (NODE, POSITION_X, POSITION_Y) => {
+    const roles = { ...window.NodeRoles };
+    const createListItem = (VALUE, LABEL, PARENT) => {
+      const item = document.createElement("li");
+      item.setAttribute("value", VALUE);
+      item.setAttribute("v8-role", "list-item");
+      item.innerText = LABEL;
+      PARENT.appendChild(item);
+    };
+    const dropdown = document.createElement("ul");
+    dropdown.setAttribute("v8-role", "floating-dropdown");
+    dropdown.setAttribute(
+      "style",
+      `
+      left: ${POSITION_X}px;
+      top: ${POSITION_Y}px;
+    `
+    );
+
+    Object.keys(roles).forEach((role) => {
+      createListItem(role, roles[role], dropdown);
+    });
+    createListItem("", "Cancel", dropdown);
+    document.body.appendChild(dropdown);
+    dropdown.addEventListener("click", (EVENT) => {
+      EVENT.target.setAttribute("v8-role", "selected");
+      setTimeout(() => EVENT.target.parentElement.remove(), 250);
+      window.dispatchEvent(
+        new CustomEvent("V8_CAPTURE_NODE", {
+          detail: {
+            role: window.NodeRoles[EVENT.target.getAttribute("value")],
+            address: V8_EVENTS.GetNodeAddress(NODE),
+          },
+        })
+      );
+    });
+  },
+
+  /**
    * Get a node on click and make it available as a reference.
+   *
    * @param { Event } EVENT
-   * @return { Node }
+   * @return { void }
    */
   GetNode: (EVENT) => {
-    window.ScrapingNode = EVENT.target;
-    return window.ScrapingNode;
+    if (!EVENT.target.getAttribute("v8-role")) {
+      V8_EVENTS.GetNodeRole(EVENT.target, EVENT.x, EVENT.y);
+    }
   },
 
   /**
@@ -77,7 +147,7 @@ module.exports = {
     const address = [];
     while (node.nodeName.toLowerCase() !== "body") {
       const _address = [];
-      _address.push(node.nodeName);
+      _address.push(node.nodeName.toLowerCase());
       node.className &&
         node.classList.length < 2 &&
         _address.push(`.${node.className.replace(/ /g, ".")}`);
@@ -85,48 +155,58 @@ module.exports = {
       address.unshift(_address.join(""));
       node = node.parentNode;
     }
-    window.ScrapingNodeAddress = address.join(" ");
-    return window.ScrapingNodeAddress;
+    return address.join(" ");
   },
 
-  /**
-   * Fetches all relevant scraping nodes from the document
-   *
-   * @param { String } ADDRESS
-   * @return { Node[] }
-   */
-  GetRelevantNodes: (ADDRESS = window.ScrapingNodeAddress) => {
-    window.ScrapingNodes = document.querySelectorAll(ADDRESS);
+  CaptureNode: (EVENT) => {
+    if (!window.ScrapingNodes) window.ScrapingNodes = [];
+    window.ScrapingNodes.push({ ...EVENT.detail });
+    console.log(EVENT, EVENT.detail);
+  },
+
+  CacheRelevantNodes: function () {
+    window.ScrapingNodesCache = [];
+    for (const node of window.ScrapingNodes) {
+      window.ScrapingNodesCache = [
+        ...window.ScrapingNodesCache,
+        ...document.querySelectorAll(node.address),
+      ];
+    }
+    return window.ScrapingNodeCache;
   },
 
   /**
    * Empties out the document and appends the content found by the scraper
    * instead.
    *
-   * @param { Node[] } NODES
    * @return { void }
    */
-  DeleteAllOtherNodes: (NODES = window.ScrapingNodes) => {
+  DeleteAllOtherNodes: () => {
     document.body.innerHTML = "";
-    [...NODES].forEach((node) => {
+    const nodes = [...window.ScrapingNodesCache];
+    if (!nodes.filter((node) => node.role === window.NodeRoles.POST_TITLE)) {
+      const title = document.createElement("h1");
+      title.innerText = document.title;
+      nodes.unshift(title);
+    }
+    nodes.forEach((node) => {
       document.body.appendChild(node);
     });
+    window.dispatchEvent(new Event("V8_CONFIRMATION", { bubbles: true }));
   },
 
   /**
-   * Parses the innertext of each scrapable node from the document to
-   * a JSON object
+   * Cleans up and retrieves innerHTML for each scrappable node
    *
-   * @param { Node[] } NODES
+   * @return { void }
    */
-  ParseNodeContents: (NODES) => {
-    const content = {
-      title: document.title,
-      content: {},
-    };
-    [...NODES].forEach((node, index) => {
-      const nodeContent = [];
-    });
+  ParseNodeContents: () => {
+    const nodes = { ...window.ScrapingNodes };
+    for (const node in nodes) {
+      node.content = [...document.querySelectorAll(node.address)].map((_node) =>
+        _node.innerHTML.replace(/[/\n/\t/\r]/g, "")
+      );
+    }
   },
 
   /**
@@ -137,31 +217,10 @@ module.exports = {
    * @return { void }
    */
   CreateFAB: () => {
-    const _button = document.createElement("BUTTON");
-    _button.setAttribute("type", "button");
-    _button.setAttribute("id", "v8-start");
-    _button.setAttribute(
-      "style",
-      `
-      position: fixed;
-      bottom: 0;
-      right: 0;
-      width: 100%;
-      font-size: 16px;
-      line-height: 1em;
-      padding: 0.5em 2em;
-      cursor: pointer;
-      border: 0;
-      outline: 0;
-      box-sizing: border-box;
-      background: #C42026;
-      color: #fff;
-      font-weight: bold;
-      font-family: sans-serif;
-      z-index: 99999999999999;
-    `
-    );
-    _button.innerText = "DONE";
-    document.body.appendChild(_button);
+    const button = document.createElement("BUTTON");
+    button.setAttribute("type", "button");
+    button.setAttribute("v8-role", "complete");
+    button.innerText = "DONE";
+    document.body.appendChild(button);
   },
 };
