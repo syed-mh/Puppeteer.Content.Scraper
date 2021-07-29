@@ -41,8 +41,9 @@ const V8_EVENTS = {
       window.removeEventListener("mousemove", V8_EVENTS.HighlightMouseTarget);
       window.removeEventListener("mouseout", V8_EVENTS.DeHighlightMouseTarget);
       window.removeEventListener("click", V8_EVENTS.GetNode);
-      V8_EVENTS.CacheRelevantNodes();
-      V8_EVENTS.DeleteAllOtherNodes();
+      V8_EVENTS.ParseNodeContents();
+      console.log(window.ScrapingNodes);
+      window.dispatchEvent(new Event("V8_COMPLETE"));
     }
   },
 
@@ -161,7 +162,6 @@ const V8_EVENTS = {
   CaptureNode: (EVENT) => {
     if (!window.ScrapingNodes) window.ScrapingNodes = [];
     window.ScrapingNodes.push({ ...EVENT.detail });
-    console.log(EVENT, EVENT.detail);
   },
 
   CacheRelevantNodes: function () {
@@ -201,10 +201,17 @@ const V8_EVENTS = {
    * @return { void }
    */
   ParseNodeContents: () => {
-    const nodes = { ...window.ScrapingNodes };
-    for (const node in nodes) {
-      node.content = [...document.querySelectorAll(node.address)].map((_node) =>
-        _node.innerHTML.replace(/[/\n/\t/\r]/g, "")
+    const nodes = [...window.ScrapingNodes];
+    for (const node of nodes) {
+      node.content = [...document.querySelectorAll(node.address)].map(
+        (_node) => {
+          [..._node.querySelectorAll("*")].forEach((content) => {
+            if (["img", "figure"].includes(content.nodeName.toLowerCase())) {
+              content.remove();
+            }
+          });
+          return _node.innerHTML.replace(/[/\n/\t/\r]/g, "");
+        }
       );
     }
   },

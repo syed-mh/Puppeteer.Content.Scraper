@@ -1,13 +1,17 @@
 {
   "name": "content-team-scraper",
   "version": "1.0.0",
-  "main": "app.js",
+  "main": "main.js",
   "license": "MIT",
   "dependencies": {
     "prompt-sync": "^4.2.0",
     "puppeteer": "^10.1.0"
   },
   "scripts": {
-    "scrape": "node app.js"
+    "start": "electron .",
+    "scrape": "node scrape.js"
+  },
+  "devDependencies": {
+    "electron": "^13.1.7"
   }
 }

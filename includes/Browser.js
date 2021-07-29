@@ -57,7 +57,9 @@ module.exports = {
       window.addEventListener("click", V8_EVENTS.GetNode);
       window.addEventListener("V8_CAPTURE_NODE", V8_EVENTS.CaptureNode);
       window.addEventListener("click", V8_EVENTS.FABConfirmClick);
-      resolve(true);
+      window.addEventListener("V8_COMPLETE", async () => {
+        resolve(window.ScrapingNodes);
+      });
     });
   },
 
@@ -69,7 +71,7 @@ module.exports = {
    * @return { void }
    */
   run: async function (
-    URL = "https://www.canstarblue.com.au/home-garden/mattresses/",
+    URL = "https://www.byrdie.com/skin-tint-ranking-5193855",
     HEADLESS = false
   ) {
     const browser = await this._initBrowser(HEADLESS);
@@ -78,42 +80,17 @@ module.exports = {
       width: 0,
       height: 0,
     });
-    // let initSuccess;
-    // do {
-    await page.goto(URL);
-    await page.addScriptTag({
-      path: "includes/page/PageEvents.js",
-    });
-    await page.addStyleTag({
-      path: "includes/page/style.css",
-    });
-    await page.evaluate(this._initScraper);
-    //   initSuccess = await page.evaluate(async () => {
-    //     return new Promise(async (resolve) => {
-    //       window.addEventListener("V8_CONFIRMATION", () => {
-    //         (() => {
-    //           const container = document.createElement("div");
-    //           container.setAttribute("v8-role", "confirmation-container");
-    //           const text = document.createElement('p');
-    //           text.innerText = 'Is this content correct?'
-    //           const confirm = document.createElement("button");
-    //           confirm.setAttribute("v8-role", "confirm");
-    //           confirm.innerText = "Yes";
-    //           const deny = document.createElement("button");
-    //           deny.setAttribute("v8-role", "deny");
-    //           deny.innerText = "No";
-    //         })();
-    //       });
-    //       let confirmation;
-    //       const GetConfirmation = (EVENT) => {
-    //         const attribute = EVENT.target.getAttribute("v8-role");
-    //         if (!["confirm", "deny"].includes(attribute)) return false;
-    //         confirmation = attribute === "confirm";
-    //       };
-    //       window.addEventListener("click", GetConfirmation);
-    //       resolve(confirmation);
-    //     });
-    // });
-    // } while (!initSuccess);
+    let initContent;
+    do {
+      await page.goto(URL);
+      await page.addScriptTag({
+        path: "includes/page/PageEvents.js",
+      });
+      await page.addStyleTag({
+        path: "includes/page/style.css",
+      });
+      initContent = await page.evaluate(this._initScraper);
+    } while (!initContent);
+    console.log(initContent);
   },
 };
