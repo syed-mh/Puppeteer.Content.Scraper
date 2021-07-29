@@ -1,5 +1,3 @@
-const { PageEmittedEvents } = require("puppeteer");
-
 module.exports = {
   /**
    * Puppeteer module
