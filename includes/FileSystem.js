@@ -48,19 +48,15 @@ module.exports = {
   /**
    * Function to create a directory on demand
    *
-   * @param { string } DIRECTORY_NAME
+   * @param { string } PATH
    * @return { string|void } The full relative directory path if successfully created OR if it already exists, nothing if it errros out
    */
-  createFolder: function (DIRECTORY_NAME, PHASE) {
-    const directory = `${this.initOutputDirectory()}/${this.initFolderMeta(
-      DIRECTORY_NAME,
-      PHASE
-    )}`;
+  createFolder: function (PATH) {
     try {
-      // if (!this._fs.existsSync(directory)) {
-      this._fs.mkdirSync(directory);
-      // }
-      return directory;
+      if (!this._fs.existsSync(PATH)) {
+        this._fs.mkdirSync(PATH, { recursive: true });
+      }
+      return PATH;
     } catch (ERROR) {
       console.log(ERROR);
     }
@@ -78,8 +74,7 @@ module.exports = {
    */
   createFile: function (FILENAME, FORMAT, CONTENT, DIRECTORY_NAME, PHASE) {
     const filename = `${this.createFolder(
-      DIRECTORY_NAME,
-      PHASE
+      `${this.initOutputDirectory()}/${DIRECTORY_NAME}/${PHASE}`
     )}/${FILENAME}.${FORMAT}`;
     try {
       this._fs.writeFileSync(filename, CONTENT);

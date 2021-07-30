@@ -104,6 +104,8 @@ module.exports = {
         path: "includes/page/style.css",
       });
       initContent = await page.evaluate(this._initScraper);
+      await page.close();
+      await browser.close(); // @todo move browser close further down
     } while (!initContent);
     console.log(initContent);
     const initContentFiles = {
@@ -117,7 +119,11 @@ module.exports = {
       json: this._fileSystem.createFile(
         "init-content",
         "json",
-        JSON.stringify(initContent, null, 2),
+        JSON.stringify(
+          initContent.map(({ role, address }) => ({ role, address })),
+          null,
+          2
+        ),
         PROJECT_IDENTIFIER,
         "init"
       ),

@@ -159,11 +159,24 @@ const V8_EVENTS = {
     return address.join(" ");
   },
 
+  /**
+   * Function to push a selected and processed node into a globally accessible
+   * object
+   *
+   * @param { Event } EVENT
+   * @return { void }
+   */
   CaptureNode: (EVENT) => {
     if (!window.ScrapingNodes) window.ScrapingNodes = [];
     window.ScrapingNodes.push({ ...EVENT.detail });
   },
 
+  /**
+   * Function to cache all relevant nodes into a globally accessible object to then
+   * call and repopulate the dom with
+   *
+   * @return { NodeList[] } Globally accessible cache of nodes
+   */
   CacheRelevantNodes: function () {
     window.ScrapingNodesCache = [];
     for (const node of window.ScrapingNodes) {
